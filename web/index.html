@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saathi – Multilingual Voice Livelihood Assistant</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                <div class="brand-text">
+                    <h2>Saathi</h2>
+                    <span>Livelihood Assistant</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="dashboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-tab="profiler">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                    <span>Beneficiary Profiler</span>
+                </button>
+                <button class="nav-item" data-tab="training">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                    <span>AI Training Engine</span>
+                </button>
+                <button class="nav-item" data-tab="jobs">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                    <span>Job & Placement</span>
+                </button>
+                <button class="nav-item" data-tab="roadmap">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                    <span>Livelihood Roadmap</span>
+                </button>
+                <button class="nav-item" data-tab="catalogs">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    <span>Program Catalogs</span>
+                </button>
+                <button class="nav-item nav-voice" data-tab="voice">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    <span>AI Voice Hub</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="db-badge">
+                    <span class="pulse-dot"></span>
+                    <span>saathi.db Connected</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header Bar with Global Language Selector -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1 id="page-title" data-i18n="header_title">Officer Dashboard</h1>
+                    <p id="page-subtitle" data-i18n="header_subtitle">Training-to-Placement Pipeline & Real-Time Monitoring</p>
+                </div>
+                <div class="header-actions">
+                    <!-- Global Language Selector Dropdown -->
+                    <div class="global-lang-selector" title="Select Universal Application Language">
+                        <span class="lang-icon">🌐</span>
+                        <select id="global-lang-select" onchange="changeGlobalLanguage(this.value)">
+                            <option value="te-IN">🇮🇳 తెలుగు (Telugu)</option>
+                            <option value="ta-IN">🇮🇳 தமிழ் (Tamil)</option>
+                            <option value="hi-IN">🇮🇳 हिंदी (Hindi)</option>
+                            <option value="kn-IN">🇮🇳 ಕನ್ನಡ (Kannada)</option>
+                            <option value="en-IN" selected>🇬🇧 English</option>
+                        </select>
+                    </div>
+                    <div class="chip-badge">PM-DAKSH &amp; NBCFDC Aligned</div>
+                    <button class="btn btn-primary" onclick="openOnboardingModal()" data-i18n="btn_register_beneficiary">+ Register Beneficiary</button>
+                </div>
+            </header>
+
+            <!-- TAB 1: OFFICER DASHBOARD -->
+            <section id="tab-dashboard" class="tab-pane active">
+
+                <!-- 3 Clear Entry Pathways Landing Gateway -->
+                <div class="landing-gateway-container">
+                    <div class="gateway-header">
+                        <div class="gateway-badge" data-i18n="gateway_badge">✨ Multi-Modal Beneficiary Intake</div>
+                        <h2 class="gateway-title" data-i18n="gateway_title">Select Onboarding Pathway</h2>
+                        <p class="gateway-subtitle" data-i18n="gateway_subtitle">Choose the intake method tailored for your beneficiary's digital accessibility level</p>
+                    </div>
+
+                    <div class="gateway-cards-grid">
+                        <!-- Option 1: Assisted Voice Call -->
+                        <div class="gateway-card card-voice-call" onclick="startInteractiveVoiceCall()">
+                            <div class="gateway-card-top">
+                                <div class="gateway-icon-wrap icon-call">
+                                    <span>📞</span>
+                                    <span class="call-ping"></span>
+                                </div>
+                                <span class="gateway-pill pill-call" data-i18n="pill_call">Interactive Voice Agent</span>
+                            </div>
+                            <h3 class="gateway-card-title" data-i18n="card_call_title">Assisted Voice Call</h3>
+                            <p class="gateway-card-desc" data-i18n="card_call_desc">One-click simulated telephone call. The AI officer asks questions out loud in your native language with automatic turn-taking.</p>
+                            <div class="gateway-card-action">
+                                <button class="btn btn-call-action">
+                                    <span>🎙️ Start AI Call</span>
+                                    <span class="btn-arrow">→</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Option 2: Push-to-Talk Voice Note -->
+                        <div class="gateway-card card-ptt" onclick="openPttModal()">
+                            <div class="gateway-card-top">
+                                <div class="gateway-icon-wrap icon-ptt">
+                                    <span>🎤</span>
+                                </div>
+                                <span class="gateway-pill pill-ptt" data-i18n="pill_ptt">Push-to-Talk Guided</span>
+                            </div>
+                            <h3 class="gateway-card-title" data-i18n="card_ptt_title">Voice Note Registration</h3>
+                            <p class="gateway-card-desc" data-i18n="card_ptt_desc">Step-by-step intake with a large tactile microphone button. Hold or tap to speak your response with real-time feedback.</p>
+                            <div class="gateway-card-action">
+                                <button class="btn btn-ptt-action">
+                                    <span>🎤 Voice Intake</span>
+                                    <span class="btn-arrow">→</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Option 3: Direct Form Entry -->
+                        <div class="gateway-card card-form" onclick="switchTab('profiler')">
+                            <div class="gateway-card-top">
+                                <div class="gateway-icon-wrap icon-form">
+                                    <span>📝</span>
+                                </div>
+                                <span class="gateway-pill pill-form" data-i18n="pill_form">Direct Manual Entry</span>
+                            </div>
+                            <h3 class="gateway-card-title" data-i18n="card_form_title">Direct Form Entry</h3>
+                            <p class="gateway-card-desc" data-i18n="card_form_desc">Traditional structured registration form, fully translated into Telugu, Tamil, Hindi, Kannada, or English.</p>
+                            <div class="gateway-card-action">
+                                <button class="btn btn-form-action">
+                                    <span>📋 Open Form</span>
+                                    <span class="btn-arrow">→</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card card-indigo">
+                        <div class="metric-icon">👥</div>
+                        <div class="metric-info">
+                            <span class="metric-label" data-i18n="metric_total">Total Beneficiaries</span>
+                            <h2 class="metric-value" id="m-total">0</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card card-cyan">
+                        <div class="metric-icon">🎓</div>
+                        <div class="metric-info">
+                            <span class="metric-label" data-i18n="metric_enrolled">Enrolled / Training</span>
+                            <h2 class="metric-value" id="m-enrolled">0</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card card-emerald">
+                        <div class="metric-icon">💼</div>
+                        <div class="metric-info">
+                            <span class="metric-label" data-i18n="metric_placed">Placed / Self-Employed</span>
+                            <h2 class="metric-value" id="m-placed">0</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card card-amber">
+                        <div class="metric-icon">⚠️</div>
+                        <div class="metric-info">
+                            <span class="metric-label" data-i18n="metric_support">Needs Officer Support</span>
+                            <h2 class="metric-value" id="m-support">0</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HITL Alert Banner -->
+                <div id="hitl-banner" class="hitl-banner hidden">
+                    <div class="hitl-icon">⚠️</div>
+                    <div class="hitl-text">
+                        <strong data-i18n="hitl_title">HUMAN-IN-THE-LOOP ALERT TRIGGERED!</strong>
+                        <span data-i18n="hitl_desc">There are beneficiaries marked 'Needs Officer Support'. Please review their profiles below.</span>
+                    </div>
+                    <button class="btn btn-outline-warning" onclick="filterDashboardTable('Needs Officer Support')" data-i18n="btn_filter_support">Filter Support Cases</button>
+                </div>
+
+                <!-- Pipeline Table Card -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h3 data-i18n="table_pipeline_title">Beneficiary Pipeline Overview</h3>
+                        <div class="table-controls">
+                            <input type="text" id="dash-search" placeholder="Filter by Name, ID, Region..." oninput="filterDashboardLive()">
+                            <button class="btn btn-secondary" onclick="loadDashboard()" data-i18n="btn_refresh">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="th_id">ID</th>
+                                    <th data-i18n="th_name">Name</th>
+                                    <th data-i18n="th_phone">Phone</th>
+                                    <th data-i18n="th_region">Region</th>
+                                    <th data-i18n="th_status">Pipeline Status</th>
+                                    <th data-i18n="th_date">Registration Date</th>
+                                    <th data-i18n="th_action">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboard-table-body">
+                                <tr><td colspan="7" class="text-center">Loading beneficiaries...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: BENEFICIARY PROFILER -->
+            <section id="tab-profiler" class="tab-pane">
+                <div class="grid-2col">
+                    <!-- Registration Form Card -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h3>📋 New Beneficiary Registration</h3>
+                            <div class="voice-sim-indicator" onclick="simulateVoiceInput()" title="Click to simulate voice input">
+                                <span class="voice-wave"></span>
+                                <span>🎤 Voice-Fill Demo (Click Me)</span>
+                            </div>
+                        </div>
+                        <form id="reg-form" onsubmit="handleRegistration(event)">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Full Name *</label>
+                                    <input type="text" id="reg-name" required placeholder="e.g. Ramesh Kumar">
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone Number *</label>
+                                    <input type="text" id="reg-phone" required placeholder="e.g. 9876543210">
+                                </div>
+                                <div class="form-group">
+                                    <label>Interaction Language</label>
+                                    <select id="reg-lang">
+                                        <option value="Telugu">Telugu (తెలుగు)</option>
+                                        <option value="Tamil">Tamil (தமிழ்)</option>
+                                        <option value="Hindi">Hindi (हिंदी)</option>
+                                        <option value="Kannada">Kannada (ಕನ್ನಡ)</option>
+                                        <option value="English" selected>English</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Education Level</label>
+                                    <select id="reg-edu">
+                                        <option value="10th Pass">10th Pass</option>
+                                        <option value="12th Pass">12th Pass</option>
+                                        <option value="Graduate">Graduate</option>
+                                        <option value="ITI">ITI / Diploma</option>
+                                        <option value="Illiterate / None">Illiterate / None</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Family / Traditional Occupation</label>
+                                    <input type="text" id="reg-famocc" placeholder="e.g. Agriculture, Weaving, Leatherwork">
+                                </div>
+                                <div class="form-group">
+                                    <label>Current Livelihood</label>
+                                    <input type="text" id="reg-curliv" placeholder="e.g. Daily Wager, Unemployed">
+                                </div>
+                                <div class="form-group">
+                                    <label>Existing Skills</label>
+                                    <input type="text" id="reg-skills" placeholder="e.g. Basic Computer, Sewing, Wiring">
+                                </div>
+                                <div class="form-group">
+                                    <label>Stated Interests</label>
+                                    <input type="text" id="reg-interests" placeholder="e.g. Fashion, Electronics, Data Entry">
+                                </div>
+                                <div class="form-group">
+                                    <label>Future Aspirations</label>
+                                    <input type="text" id="reg-aspirations" placeholder="e.g. Start Small Business, Technician">
+                                </div>
+                                <div class="form-group">
+                                    <label>Mobility Constraints</label>
+                                    <input type="text" id="reg-constraints" placeholder="e.g. Local only, Night shift restriction">
+                                </div>
+                                <div class="form-group">
+                                    <label>Employment Preference</label>
+                                    <select id="reg-emppref">
+                                        <option value="Wage Employment">Wage Employment</option>
+                                        <option value="Self Employment">Self Employment</option>
+                                        <option value="Both" selected>Both</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Region / District</label>
+                                    <input type="text" id="reg-region" placeholder="e.g. Rural - Salem, Tirupati">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">✓ Register & Save to saathi.db</button>
+                        </form>
+                    </div>
+
+                    <!-- Profile Viewer & Details Card -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h3>👤 Registered Beneficiary Profiles</h3>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <input type="text" id="profile-search" placeholder="Search by name, ID, or region..." oninput="filterProfilesLive()" style="width:100%;">
+                        </div>
+                        <div class="profile-layout">
+                            <div class="profile-list" id="profile-list">
+                                <!-- Populated dynamically -->
+                            </div>
+                            <div class="profile-detail-card" id="profile-detail">
+                                <div class="empty-state">Select a beneficiary from the list to view profile card.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: AI TRAINING RECOMMENDATIONS -->
+            <section id="tab-training" class="tab-pane">
+                <div class="glass-card mb-20">
+                    <div class="control-row">
+                        <label>Select Beneficiary:</label>
+                        <select id="training-ben-select" class="select-lg"></select>
+                        <button class="btn btn-accent" onclick="runTrainingRecommendations()">🎯 Generate AI Training Recommendations</button>
+                    </div>
+                </div>
+                <div id="training-results" class="results-container">
+                    <div class="empty-state">Select a beneficiary and click 'Generate AI Training Recommendations'.</div>
+                </div>
+            </section>
+
+            <!-- TAB 4: JOB & LIVELIHOOD MATCHING -->
+            <section id="tab-jobs" class="tab-pane">
+                <div class="glass-card mb-20">
+                    <div class="control-row">
+                        <label>Select Beneficiary:</label>
+                        <select id="job-ben-select" class="select-lg"></select>
+                        <button class="btn btn-accent" onclick="runJobRecommendations()">💼 Generate Job Matches</button>
+                    </div>
+                </div>
+                <div id="job-results" class="results-container">
+                    <div class="empty-state">Select a beneficiary and click 'Generate Job Matches'.</div>
+                </div>
+            </section>
+
+            <!-- TAB 5: PERSONALIZED ROADMAP -->
+            <section id="tab-roadmap" class="tab-pane">
+                <div class="glass-card mb-20">
+                    <div class="control-row">
+                        <label>Select Beneficiary:</label>
+                        <select id="roadmap-ben-select" class="select-lg"></select>
+                        <button class="btn btn-accent" onclick="loadPersonalRoadmap()">🗺️ View Personalized Livelihood Roadmap</button>
+                    </div>
+                </div>
+                <div id="roadmap-results" class="roadmap-container">
+                    <div class="empty-state">Select a beneficiary to visualize their 6-step livelihood timeline.</div>
+                </div>
+            </section>
+
+            <!-- TAB 6: CATALOGS -->
+            <section id="tab-catalogs" class="tab-pane">
+                <div class="catalog-tabs">
+                    <button class="subtab-btn active" onclick="showCatalog('tp')">NSQF Aligned Training Programmes</button>
+                    <button class="subtab-btn" onclick="showCatalog('opp')">Local Job & Livelihood Opportunities</button>
+                </div>
+                <div class="glass-card">
+                    <div class="table-wrapper">
+                        <table class="data-table" id="catalog-table">
+                            <thead id="catalog-thead"></thead>
+                            <tbody id="catalog-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 7: AI VOICE HUB -->
+            <section id="tab-voice" class="tab-pane">
+                <div class="voice-hub-grid">
+
+                    <!-- LEFT COLUMN: AI Chat + Voice Message -->
+                    <div class="voice-col-left">
+
+                        <!-- AI Chat Panel -->
+                        <div class="glass-card voice-chat-card">
+                            <div class="card-header">
+                                <h3>💬 AI Saathi Chat</h3>
+                                <div class="voice-chat-controls">
+                                    <select id="chat-ben-select" class="select-sm" title="Attach Beneficiary Context">
+                                        <option value="">No Beneficiary Context</option>
+                                    </select>
+                                    <button class="btn btn-secondary btn-sm" onclick="toggleChatVoice()" id="chat-voice-toggle" title="Toggle AI voice responses">
+                                        🔊 Voice On
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chat-window" id="chat-window">
+                                <div class="chat-msg chat-msg-ai">
+                                    <div class="chat-avatar">🤖</div>
+                                    <div class="chat-bubble">
+                                        <p>Namaste! 🙏 I'm Saathi, your AI-powered livelihood assistant. You can ask me about training programmes, job opportunities, skill gaps, beneficiary registration, or anything else!</p>
+                                        <span class="chat-time" id="chat-init-time"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chat-input-row">
+                                <input type="text" id="chat-input" placeholder="Ask Saathi anything... (or press mic)" onkeydown="if(event.key==='Enter') sendChatMessage()">
+                                <button class="btn-mic" id="chat-mic-btn" onclick="startVoiceMessage()" title="Speak to AI">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+                                </button>
+                                <button class="btn btn-primary" onclick="sendChatMessage()" id="chat-send-btn">Send</button>
+                            </div>
+                            <div class="mic-status" id="voice-msg-status"></div>
+                        </div>
+
+                        <!-- Voice Message Panel -->
+                        <div class="glass-card voice-panel">
+                            <div class="card-header">
+                                <h3>🎙 Voice Message to AI</h3>
+                                <span class="badge badge-info">Real-time STT</span>
+                            </div>
+                            <p class="voice-panel-desc">Click the button below, speak your question or message, and Saathi will respond instantly in voice.</p>
+                            <div class="voice-action-row">
+                                <button class="btn-voice-speak" id="speak-btn" onclick="startVoiceMessage()">
+                                    <span class="voice-ring"></span>
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                                    Speak to AI
+                                </button>
+                                <div class="voice-transcript-box">
+                                    <div class="transcript-label">Transcript</div>
+                                    <div id="voice-transcript">Your speech will appear here...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: AI Call + Voice Recording -->
+                    <div class="voice-col-right">
+
+                        <!-- Simulated AI Call Panel -->
+                        <div class="glass-card call-panel">
+                            <div class="card-header">
+                                <h3>📞 AI Saathi Call</h3>
+                                <span class="badge badge-success">Simulated Live Call</span>
+                            </div>
+                            <div class="call-interface" id="call-interface">
+                                <div class="call-avatar">
+                                    <div class="call-avatar-ring" id="call-avatar-ring">
+                                        <span class="call-avatar-icon">🤖</span>
+                                    </div>
+                                    <div class="call-name">Saathi AI</div>
+                                    <div class="call-status" id="call-status-text">Ready to connect</div>
+                                    <div class="call-timer" id="call-timer">00:00</div>
+                                </div>
+                                <div class="call-transcript-area">
+                                    <div class="call-transcript-label">Live Conversation</div>
+                                    <div class="call-log" id="call-log">
+                                        <div class="call-log-entry call-log-ai">📞 Start a call to begin your conversation with Saathi AI.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="call-btn-row">
+                                <button class="btn-call-start" id="call-start-btn" onclick="startAICall()">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+                                    Start Call
+                                </button>
+                                <button class="btn-call-end hidden" id="call-end-btn" onclick="endAICall()">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+                                    End Call
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Voice Intake Registration -->
+                        <div class="glass-card recording-panel">
+                            <div class="card-header">
+                                <h3>🎙 Voice Intake Registration</h3>
+                                <span class="badge badge-success">Conversational AI</span>
+                            </div>
+                            <p class="voice-panel-desc">Use the 10-step conversational onboarding to register a beneficiary by voice. The AI will ask one question at a time and auto-fill your profile.</p>
+
+                            <div class="intake-launch-area">
+                                <button class="btn-intake-launch" onclick="openOnboardingModal()">
+                                    <span class="intake-icon">🧭</span>
+                                    <span class="intake-label">Start Voice Onboarding</span>
+                                    <span class="intake-sub">10 questions · AI guided · Multilingual</span>
+                                </button>
+                            </div>
+
+                            <div class="intake-mode-row">
+                                <button class="btn-intake-mode" onclick="openOnboardingModal('direct')">
+                                    📝 <span>Direct Form</span>
+                                </button>
+                                <button class="btn-intake-mode" onclick="openOnboardingModal('voice')">
+                                    🎤 <span>Voice Note</span>
+                                </button>
+                                <button class="btn-intake-mode" onclick="openOnboardingModal('ivr')">
+                                    📞 <span>IVR Call</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ======================================================
+         ONBOARDING INTAKE MODAL (4 Screens)
+    ====================================================== -->
+    <div id="onboarding-modal" class="ob-modal">
+        <div class="ob-backdrop" onclick="closeOnboardingModal()"></div>
+        <div class="ob-container">
+
+            <!-- Screen 1: Mode Selection -->
+            <div class="ob-screen" id="ob-screen-mode">
+                <div class="ob-header">
+                    <div class="ob-logo">🤝</div>
+                    <h2>Register a Beneficiary</h2>
+                    <p>Choose how you'd like to collect information</p>
+                    <button class="ob-close" onclick="closeOnboardingModal()">✕</button>
+                </div>
+                <div class="ob-mode-grid">
+                    <button class="ob-mode-card" onclick="selectMode('direct')" id="mode-card-direct">
+                        <div class="ob-mode-icon">📝</div>
+                        <div class="ob-mode-title">Direct App Usage</div>
+                        <div class="ob-mode-desc">Type answers step-by-step in the conversational form</div>
+                        <div class="ob-mode-badge">Text Input</div>
+                    </button>
+                    <button class="ob-mode-card" onclick="selectMode('voice')" id="mode-card-voice">
+                        <div class="ob-mode-icon">🎤</div>
+                        <div class="ob-mode-title">Voice Note Registration</div>
+                        <div class="ob-mode-desc">Push-to-talk speech-to-text guided intake</div>
+                        <div class="ob-mode-badge ob-badge-voice">Push-to-Talk</div>
+                    </button>
+                    <button class="ob-mode-card" onclick="selectMode('ivr')" id="mode-card-ivr">
+                        <div class="ob-mode-icon">📞</div>
+                        <div class="ob-mode-title">IVR / Phone Call</div>
+                        <div class="ob-mode-desc">Simulated telephony conversational flow</div>
+                        <div class="ob-mode-badge ob-badge-ivr">IVR Simulated</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Screen 2: Language Selection -->
+            <div class="ob-screen hidden" id="ob-screen-lang">
+                <div class="ob-header">
+                    <button class="ob-back" onclick="showObScreen('mode')">← Back</button>
+                    <div class="ob-logo">🌐</div>
+                    <h2>Select Your Language</h2>
+                    <p>All questions will be in your chosen language</p>
+                    <button class="ob-close" onclick="closeOnboardingModal()">✕</button>
+                </div>
+                <div class="ob-lang-grid">
+                    <button class="ob-lang-pill" onclick="selectLanguage('en-IN')" id="lang-en">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-name">English</span>
+                        <span class="lang-native">English</span>
+                    </button>
+                    <button class="ob-lang-pill" onclick="selectLanguage('hi-IN')" id="lang-hi">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-name">Hindi</span>
+                        <span class="lang-native">हिंदी</span>
+                    </button>
+                    <button class="ob-lang-pill" onclick="selectLanguage('ta-IN')" id="lang-ta">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-name">Tamil</span>
+                        <span class="lang-native">தமிழ்</span>
+                    </button>
+                    <button class="ob-lang-pill" onclick="selectLanguage('te-IN')" id="lang-te">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-name">Telugu</span>
+                        <span class="lang-native">తెలుగు</span>
+                    </button>
+                    <button class="ob-lang-pill" onclick="selectLanguage('kn-IN')" id="lang-kn">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-name">Kannada</span>
+                        <span class="lang-native">ಕನ್ನಡ</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Screen 3: Conversational Q&A -->
+            <div class="ob-screen hidden" id="ob-screen-qa">
+                <div class="ob-qa-header">
+                    <button class="ob-back" onclick="closeOnboardingModal()">✕ Cancel</button>
+                    <div class="ob-step-indicator">
+                        <span id="ob-step-label">Step 1 of 10</span>
+                        <div class="ob-progress-bar">
+                            <div class="ob-progress-fill" id="ob-progress-fill" style="width:10%"></div>
+                        </div>
+                    </div>
+                    <div class="ob-mode-label" id="ob-mode-label">📝 Direct</div>
+                </div>
+
+                <!-- AI Prompt Bubble -->
+                <div class="ob-prompt-area">
+                    <div class="ob-ai-avatar">🤖</div>
+                    <div class="ob-prompt-bubble" id="ob-prompt-text">Loading question...</div>
+                    <button class="ob-tts-btn" id="ob-tts-btn" onclick="replayTts()" title="Replay audio">
+                        🔊
+                    </button>
+                </div>
+
+                <!-- Validation error -->
+                <div class="ob-error" id="ob-error"></div>
+
+                <!-- Answer Input (text mode) -->
+                <div class="ob-answer-area" id="ob-answer-text-area">
+                    <textarea id="ob-answer-input" class="ob-textarea" rows="2"
+                        placeholder="Type your answer here..."
+                        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitObStep();}"></textarea>
+                    <div class="ob-answer-actions">
+                        <button class="ob-mic-btn" id="ob-mic-btn" onclick="startObVoiceInput()" title="Speak your answer">
+                            🎤
+                        </button>
+                        <button class="btn btn-primary ob-next-btn" id="ob-next-btn" onclick="submitObStep()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Voice push-to-talk (voice mode overlay) -->
+                <div class="ob-ptt-area hidden" id="ob-ptt-area">
+                    <button class="ob-ptt-btn" id="ob-ptt-btn"
+                        onmousedown="startPtt()" onmouseup="stopPtt()"
+                        ontouchstart="startPtt()" ontouchend="stopPtt()">
+                        <div class="ob-ptt-ring" id="ob-ptt-ring"></div>
+                        <span class="ob-ptt-icon">🎤</span>
+                        <span class="ob-ptt-label" id="ob-ptt-label">Hold to Speak</span>
+                    </button>
+                    <div class="ob-ptt-transcript" id="ob-ptt-transcript"></div>
+                    <button class="btn btn-primary ob-next-btn" id="ob-ptt-next-btn" onclick="submitObStep()" disabled>Submit →</button>
+                </div>
+
+                <!-- IVR Dialer UI -->
+                <div class="ob-ivr-area hidden" id="ob-ivr-area">
+                    <div class="ob-ivr-display">
+                        <div class="ob-ivr-caller">📞 Saathi IVR</div>
+                        <div class="ob-ivr-input" id="ob-ivr-input"></div>
+                    </div>
+                    <div class="ob-ivr-keypad">
+                        <button class="ob-key" onclick="ivrKey('1')">1</button>
+                        <button class="ob-key" onclick="ivrKey('2')">2 <small>ABC</small></button>
+                        <button class="ob-key" onclick="ivrKey('3')">3 <small>DEF</small></button>
+                        <button class="ob-key" onclick="ivrKey('4')">4 <small>GHI</small></button>
+                        <button class="ob-key" onclick="ivrKey('5')">5 <small>JKL</small></button>
+                        <button class="ob-key" onclick="ivrKey('6')">6 <small>MNO</small></button>
+                        <button class="ob-key" onclick="ivrKey('7')">7 <small>PQRS</small></button>
+                        <button class="ob-key" onclick="ivrKey('8')">8 <small>TUV</small></button>
+                        <button class="ob-key" onclick="ivrKey('9')">9 <small>WXYZ</small></button>
+                        <button class="ob-key" onclick="ivrKey('*')">*</button>
+                        <button class="ob-key" onclick="ivrKey('0')">0</button>
+                        <button class="ob-key ob-key-del" onclick="ivrBackspace()">⌫</button>
+                    </div>
+                    <div class="ob-ivr-actions">
+                        <button class="btn btn-secondary" onclick="ivrClear()">Clear</button>
+                        <button class="btn btn-primary ob-next-btn" onclick="submitObStep()">Submit #</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 4: Success -->
+            <div class="ob-screen hidden" id="ob-screen-success">
+                <div class="ob-success-content">
+                    <div class="ob-success-icon">✅</div>
+                    <h2>Registration Complete!</h2>
+                    <p>The beneficiary profile has been created and saved to saathi.db</p>
+                    <div class="ob-success-details">
+                        <div class="ob-detail-row">
+                            <span class="ob-detail-label">Beneficiary ID</span>
+                            <span class="ob-detail-value" id="ob-success-id">—</span>
+                        </div>
+                        <div class="ob-detail-row">
+                            <span class="ob-detail-label">Pipeline Status</span>
+                            <span class="badge badge-success" id="ob-success-status">Recommendation Generated</span>
+                        </div>
+                    </div>
+                    <div class="ob-success-actions">
+                        <button class="btn btn-primary" onclick="closeOnboardingModal(); loadDashboard(); loadBeneficiaries()">View Dashboard</button>
+                        <button class="btn btn-secondary" onclick="restartOnboarding()">Register Another</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ======================================================
+         INTERACTIVE AI VOICE CALL MODAL (Turn-Taking Telephony Agent)
+    ====================================================== -->
+    <div id="voice-call-modal" class="ob-modal">
+        <div class="ob-backdrop" onclick="confirmEndCall()"></div>
+        <div class="call-modal-container">
+            <!-- Call Header -->
+            <div class="call-header">
+                <div class="call-agent-info">
+                    <div class="call-avatar-wrap">
+                        <div class="call-avatar">🤖</div>
+                        <div class="call-pulse-ring" id="call-pulse-ring"></div>
+                    </div>
+                    <div class="call-meta">
+                        <h3 class="call-agent-name" data-i18n="call_agent_name">Saathi AI Voice Officer</h3>
+                        <div class="call-status-row">
+                            <span class="call-timer" id="call-timer">00:00</span>
+                            <span class="call-lang-badge" id="call-lang-badge">🇮🇳 Telugu (తెలుగు)</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="call-close-btn" onclick="confirmEndCall()" title="End Call">✕</button>
+            </div>
+
+            <!-- Call State Banner (Turn-Taking Indicator) -->
+            <div class="call-state-banner" id="call-state-banner">
+                <div class="state-icon" id="call-state-icon">🤖</div>
+                <div class="state-text-wrap">
+                    <span class="state-title" id="call-state-title">AI Speaking...</span>
+                    <span class="state-desc" id="call-state-desc">Please listen to the question</span>
+                </div>
+            </div>
+
+            <!-- Audio Waveform Visualization -->
+            <div class="call-wave-container" id="call-wave-container">
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div>
+            </div>
+
+            <!-- Real-Time Call Transcript Dialogue Stream -->
+            <div class="call-transcript-stream" id="call-transcript-stream">
+                <!-- Dialogue bubbles injected here -->
+            </div>
+
+            <!-- Inline Fallback Typing Drawer (if mic fails or noisy environment) -->
+            <div class="call-fallback-drawer" id="call-fallback-drawer">
+                <div class="fallback-header">
+                    <span data-i18n="fallback_title">⌨️ Type Answer Instead</span>
+                    <button class="btn-text-close" onclick="toggleCallFallback(false)">✕</button>
+                </div>
+                <div class="fallback-input-row">
+                    <input type="text" id="call-fallback-input" placeholder="Type your answer here..."
+                        onkeydown="if(event.key==='Enter') submitCallFallback()">
+                    <button class="btn btn-primary btn-sm" onclick="submitCallFallback()" data-i18n="btn_submit">Submit</button>
+                </div>
+            </div>
+
+            <!-- Bottom Call Control Toolbar -->
+            <div class="call-controls-toolbar">
+                <button class="btn-call-ctrl" id="btn-call-replay" onclick="replayCallPrompt()" title="Replay Question">
+                    <span>🔊</span>
+                    <small data-i18n="ctrl_replay">Replay</small>
+                </button>
+                <button class="btn-call-ctrl" id="btn-call-type" onclick="toggleCallFallback()" title="Type Instead">
+                    <span>⌨️</span>
+                    <small data-i18n="ctrl_type">Type</small>
+                </button>
+                <button class="btn-call-end" onclick="confirmEndCall()" title="End Call">
+                    <span>📞</span>
+                    <small data-i18n="ctrl_end_call">End Call</small>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================
+         MULTILINGUAL BENEFICIARY PROFILE MODAL
+    ====================================================== -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content glass-card profile-modal-content">
+            <div class="modal-header">
+                <div class="profile-header-title">
+                    <h3 id="prof-modal-name">Beneficiary Profile</h3>
+                    <span class="badge badge-indigo" id="prof-modal-id">BEN1001</span>
+                </div>
+                <div class="profile-header-actions">
+                    <!-- In-Modal Language Switcher -->
+                    <select id="prof-lang-switch" class="select-sm" onchange="switchProfileModalLanguage(this.value)">
+                        <option value="te-IN">తెలుగు (Telugu)</option>
+                        <option value="ta-IN">தமிழ் (Tamil)</option>
+                        <option value="hi-IN">हिंदी (Hindi)</option>
+                        <option value="kn-IN">ಕನ್ನಡ (Kannada)</option>
+                        <option value="en-IN">English</option>
+                    </select>
+                    <span class="close-btn" onclick="closeProfileModal()">&times;</span>
+                </div>
+            </div>
+            <div class="modal-body profile-modal-body" id="profile-modal-body">
+                <!-- Populated dynamically with localized keys and values -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeProfileModal()" data-i18n="btn_close">Close</button>
+                <button class="btn btn-primary" onclick="generateRoadmapForModalBen()" data-i18n="btn_view_roadmap">🗺️ View Personalized Roadmap</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div id="status-modal" class="modal">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h3 id="modal-ben-name">Update Pipeline Status</h3>
+                <span class="close-btn" onclick="closeStatusModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modal-ben-id">
+                <div class="form-group">
+                    <label>Select New Status:</label>
+                    <select id="modal-status-select" class="select-block">
+                        <option value="Profile Created">Profile Created</option>
+                        <option value="Recommendation Generated">Recommendation Generated</option>
+                        <option value="Enrolled">Enrolled</option>
+                        <option value="Training In Progress">Training In Progress</option>
+                        <option value="Training Completed">Training Completed</option>
+                        <option value="Placed">Placed</option>
+                        <option value="Self-Employment Started">Self-Employment Started</option>
+                        <option value="Needs Officer Support">Needs Officer Support (HITL)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeStatusModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitStatusUpdate()">Save Status to saathi.db</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
