@@ -42,6 +42,10 @@ public class WebServer {
             server.createContext("/api/catalogs", new CatalogsHandler());
             server.createContext("/api/ai-chat", new AiChatHandler());
             server.createContext("/api/recordings", new RecordingHandler());
+            // POST /api/tts     — Gemini TTS synthesis endpoint
+            server.createContext("/api/tts",       new TtsHandler());
+            // POST /api/transcribe — Gemini STT endpoint
+            server.createContext("/api/transcribe", new TranscribeHandler());
 
             // Onboarding (Conversational Intake) Handlers
             server.createContext("/api/onboarding/start",                new OnboardingStartHandler());
@@ -1508,10 +1512,81 @@ public class WebServer {
     }
 
     // ============================================================================
+    // POST /api/tts
+    // Body: {"text":"...","lang":"hi-IN"}
+    // Response: {"tts":{...}} — same JSON as TextToSpeechService.synthesize()
+    // ============================================================================
+    static class TtsHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "POST, OPTIONS");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) { exchange.sendResponseHeaders(204, -1); return; }
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendResponse(exchange, 405, "application/json", "{\"error\":\"Method not allowed\"}"); return;
+            }
+
+            String body = readRequestBody(exchange);
+            Map<String, String> p = parseJsonOrForm(body);
+            String text = p.getOrDefault("text", "").trim();
+            String lang = p.getOrDefault("lang", "en-IN").trim();
+
+            if (text.isEmpty()) {
+                sendResponse(exchange, 400, "application/json", "{\"error\":\"text is required\"}"); return;
+            }
+
+            String ttsJson = Main.TextToSpeechService.synthesize(text, lang);
+            // Wrap inside a top-level {"tts": ...} envelope
+            sendResponse(exchange, 200, "application/json", "{\"tts\":" + ttsJson + "}");
+        }
+    }
+
+    // ============================================================================
+    // POST /api/transcribe
+    // Body: raw audio bytes (multipart not required; raw body = audio data)
+    // Query: ?lang=hi-IN
+    // Response: {"transcript":"...","success":true}
+    // ============================================================================
+    static class TranscribeHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "POST, OPTIONS");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) { exchange.sendResponseHeaders(204, -1); return; }
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendResponse(exchange, 405, "application/json", "{\"error\":\"Method not allowed\"}"); return;
+            }
+
+            Map<String, String> q = queryToMap(exchange.getRequestURI().getQuery());
+            String lang = q.getOrDefault("lang", "en-IN");
+
+            // Read raw audio bytes from body
+            java.io.InputStream is = exchange.getRequestBody();
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            int len;
+            while ((len = is.read(buf)) != -1) baos.write(buf, 0, len);
+            byte[] audioBytes = baos.toByteArray();
+
+            if (audioBytes.length == 0) {
+                sendResponse(exchange, 400, "application/json", "{\"error\":\"No audio data received\"}"); return;
+            }
+
+            String transcript = Main.SpeechToTextService.transcribe(audioBytes, lang);
+            System.out.println("[TranscribeHandler] lang=" + lang + " bytes=" + audioBytes.length + " → " + transcript.substring(0, Math.min(60, transcript.length())));
+            sendResponse(exchange, 200, "application/json",
+                "{\"transcript\":\"" + escapeJson(transcript) + "\",\"success\":true,\"lang\":\"" + lang + "\"}");
+        }
+    }
+
+    // ============================================================================
     // GEMINI AI ENGINE — Google Gemini API-powered intelligent chat
     // Falls back to rule-based AiEngine if GEMINI_API_KEY is not set.
     // ============================================================================
     static class GeminiEngine {
+
 
         private static final String GEMINI_API_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
@@ -1523,7 +1598,8 @@ public class WebServer {
 
         /** Returns [reply, intent] */
         public static String[] generateResponse(String userMessage, Main.Beneficiary beneficiary) {
-            String apiKey = System.getenv("GEMINI_API_KEY");
+            // Read key from .env file first, fall back to environment variable
+            String apiKey = Main.EnvLoader.get("GEMINI_API_KEY");
             if (apiKey == null || apiKey.isBlank()) {
                 System.out.println("[Gemini] GEMINI_API_KEY not set — using rule-based fallback.");
                 return AiEngine.generateResponse(userMessage, beneficiary);
@@ -1584,7 +1660,7 @@ public class WebServer {
             }
             s.append("INSTRUCTIONS: Reply warmly and concisely (3-4 sentences max). Use the user's language. ");
             s.append("Use relevant emojis. Reference the beneficiary profile when available. ");
-            s.append("Guide users to the correct app tab: Dashboard, Beneficiary Profiler, AI Training Engine, Job & Placement, Livelihood Roadmap, AI Voice Hub.");
+            s.append("Guide users to the correct app tab: Dashboard, Beneficiary Profiler, AI Training Engine, Job & Placement, Livelihood Roadmap, Program Catalogs.");
             return s.toString();
         }
 

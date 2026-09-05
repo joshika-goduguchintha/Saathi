@@ -1,6 +1,12 @@
 import java.io.*;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.*;
 
 /**
@@ -1752,29 +1758,253 @@ public class Main {
     }
 
     // ========================================================================
-    // AI SERVICE ABSTRACTION STUBS (ready for Whisper / Bhashini / GCP)
+    // ENV LOADER — reads GEMINI_API_KEY from .env file in the working directory
     // ========================================================================
 
     /**
-     * SpeechToTextService — swap body of transcribe() to integrate real ASR.
-     * Supports: Whisper API, Bhashini ASR, Google Cloud Speech-to-Text.
+     * Reads key=value pairs from a .env file in the current working directory.
+     * Falls back to System.getenv() if the file doesn't exist or key is missing.
+     */
+    public static class EnvLoader {
+        private static final Map<String, String> ENV_CACHE = new HashMap<>();
+        private static volatile boolean loaded = false;
+
+        public static synchronized String get(String key) {
+            if (!loaded) load();
+            String val = ENV_CACHE.get(key);
+            if (val != null && !val.isBlank()) return val;
+            // Fallback to real environment variable
+            return System.getenv(key);
+        }
+
+        private static void load() {
+            loaded = true;
+            File envFile = new File(".env");
+            if (!envFile.exists()) {
+                System.out.println("[EnvLoader] .env file not found in " + new File(".").getAbsolutePath());
+                return;
+            }
+            try (BufferedReader br = new BufferedReader(new FileReader(envFile, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    line = line.trim();
+                    if (line.isEmpty() || line.startsWith("#")) continue;
+                    int eq = line.indexOf('=');
+                    if (eq < 1) continue;
+                    String k = line.substring(0, eq).trim();
+                    String v = line.substring(eq + 1).trim();
+                    // Strip surrounding quotes if present
+                    if (v.length() >= 2 &&
+                        ((v.startsWith("\"") && v.endsWith("\"")) ||
+                         (v.startsWith("'") && v.endsWith("'")))) {
+                        v = v.substring(1, v.length() - 1);
+                    }
+                    ENV_CACHE.put(k, v);
+                    System.out.println("[EnvLoader] Loaded key: " + k);
+                }
+            } catch (IOException e) {
+                System.err.println("[EnvLoader] Failed to read .env: " + e.getMessage());
+            }
+        }
+    }
+
+    // ========================================================================
+    // AI SERVICE ABSTRACTION — Gemini-backed TTS & STT
+    // ========================================================================
+
+    private static final HttpClient AI_HTTP_CLIENT = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(15))
+        .build();
+
+    /**
+     * SpeechToTextService — uses Gemini multimodal (gemini-2.0-flash) to transcribe audio.
+     * Sends base64-encoded audio inline. Falls back to stub message on error.
      */
     public static class SpeechToTextService {
+        private static final String STT_MODEL = "gemini-2.0-flash";
+        private static final String STT_URL =
+            "https://generativelanguage.googleapis.com/v1beta/models/" + STT_MODEL + ":generateContent";
+
         public static String transcribe(byte[] audioBytes, String languageCode) {
-            return "[STT stub] Audio bytes received: " + audioBytes.length + " bytes for lang=" + languageCode;
+            String apiKey = EnvLoader.get("GEMINI_API_KEY");
+            if (apiKey == null || apiKey.isBlank()) {
+                System.err.println("[STT] GEMINI_API_KEY not set — returning stub.");
+                return "[STT] Audio received (" + audioBytes.length + " bytes). API key not configured.";
+            }
+
+            try {
+                String base64Audio = Base64.getEncoder().encodeToString(audioBytes);
+                // Detect MIME type from bytes (WebM starts with 0x1A45DFA3)
+                String mimeType = (audioBytes.length > 4 &&
+                    audioBytes[0] == 0x1A && audioBytes[1] == 0x45) ? "audio/webm" : "audio/wav";
+
+                String langHint = languageCode != null ? "Transcribe in language " + languageCode + ". " : "";
+                String transcribePrompt = langHint + "Please transcribe this audio accurately. Return only the transcribed text.";
+                String requestBody = "{" +
+                    "\"contents\":[{\"role\":\"user\",\"parts\":[" +
+                    "{\"text\":\"" + jeS(transcribePrompt) + "\"}," +
+                    "{\"inline_data\":{\"mime_type\":\"" + mimeType + "\",\"data\":\"" + base64Audio + "\"}}" +
+                    "]}]," +
+                    "\"generationConfig\":{\"maxOutputTokens\":512,\"temperature\":0.0}}";
+
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(STT_URL + "?key=" + apiKey))
+                    .header("Content-Type", "application/json; charset=utf-8")
+                    .timeout(Duration.ofSeconds(30))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
+                    .build();
+
+                HttpResponse<String> response =
+                    AI_HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+                if (response.statusCode() == 200) {
+                    String transcript = extractGeminiText(response.body());
+                    if (transcript != null && !transcript.isBlank()) {
+                        System.out.println("[STT] ✓ Transcribed: " + transcript.substring(0, Math.min(80, transcript.length())));
+                        return transcript.trim();
+                    }
+                } else {
+                    System.err.println("[STT] API error HTTP " + response.statusCode() + ": " + response.body());
+                }
+            } catch (IOException | InterruptedException e) {
+                System.err.println("[STT] Request failed: " + e.getMessage());
+                Thread.currentThread().interrupt();
+            }
+            return "[STT] Transcription failed. Please try again.";
+        }
+
+        private static String extractGeminiText(String json) {
+            if (json == null) return null;
+            int ti = json.indexOf("\"text\":");
+            if (ti < 0) return null;
+            int start = json.indexOf('"', ti + 7) + 1;
+            if (start <= 0) return null;
+            StringBuilder result = new StringBuilder();
+            boolean esc = false;
+            for (int i = start; i < json.length(); i++) {
+                char c = json.charAt(i);
+                if (esc) {
+                    switch (c) {
+                        case '"' -> result.append('"');
+                        case '\\' -> result.append('\\');
+                        case 'n' -> result.append('\n');
+                        case 'r' -> result.append('\r');
+                        case 't' -> result.append('\t');
+                        default  -> { result.append('\\'); result.append(c); }
+                    }
+                    esc = false;
+                } else if (c == '\\') {
+                    esc = true;
+                } else if (c == '"') {
+                    break;
+                } else {
+                    result.append(c);
+                }
+            }
+            return result.toString();
+        }
+
+        private static String jeS(String s) {
+            if (s == null) return "";
+            return s.replace("\\", "\\\\").replace("\"", "\\\"")
+                    .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
         }
     }
 
     /**
-     * TextToSpeechService — swap body of synthesize() to integrate real TTS.
-     * Supports: Google Cloud TTS, Bhashini TTS, browser Web Speech API (default).
+     * TextToSpeechService — uses Gemini TTS (gemini-2.5-flash-preview-tts) to generate speech.
+     * Returns a JSON object with either a base64 audio payload (for inline playback)
+     * or falls back to browser Web Speech API hint when the key is unavailable.
      */
     public static class TextToSpeechService {
+        private static final String TTS_MODEL  = "gemini-2.0-flash";
+        private static final String TTS_URL    =
+            "https://generativelanguage.googleapis.com/v1beta/models/" + TTS_MODEL + ":generateContent";
+
+        // Voice names matched to language codes
+        private static String voiceForLang(String lang) {
+            if (lang == null) return "Kore";
+            return switch (lang) {
+                case "hi-IN" -> "Puck";    // Hindi
+                case "ta-IN" -> "Aoede";   // Tamil
+                case "te-IN" -> "Charon";  // Telugu
+                case "kn-IN" -> "Fenrir";  // Kannada
+                default      -> "Kore";    // English
+            };
+        }
+
         public static String synthesize(String text, String languageCode) {
-            return String.format(
-                "{\"text\":\"%s\",\"lang\":\"%s\",\"engine\":\"browser-tts\"}",
-                text.replace("\"", "'"), languageCode
-            );
+            String apiKey = EnvLoader.get("GEMINI_API_KEY");
+            if (apiKey == null || apiKey.isBlank()) {
+                System.err.println("[TTS] GEMINI_API_KEY not set — using browser TTS fallback.");
+                return buildBrowserFallback(text, languageCode);
+            }
+
+            try {
+                String voice = voiceForLang(languageCode);
+                String requestBody = "{" +
+                    "\"contents\":[{\"parts\":[{\"text\":\"" + jeS(text) + "\"}]}]," +
+                    "\"generationConfig\":{" +
+                        "\"responseModalities\":[\"AUDIO\"]," +
+                        "\"speechConfig\":{" +
+                            "\"voiceConfig\":{" +
+                                "\"prebuiltVoiceConfig\":{\"voiceName\":\"" + voice + "\"}" +
+                            "}" +
+                        "}" +
+                    "}}";
+
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(TTS_URL + "?key=" + apiKey))
+                    .header("Content-Type", "application/json; charset=utf-8")
+                    .timeout(Duration.ofSeconds(30))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
+                    .build();
+
+                HttpResponse<String> response =
+                    AI_HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+                if (response.statusCode() == 200) {
+                    String audioB64 = extractInlineData(response.body());
+                    if (audioB64 != null && !audioB64.isBlank()) {
+                        System.out.println("[TTS] ✓ Audio generated for lang=" + languageCode + " text=" + text.substring(0, Math.min(30, text.length())));
+                        // Return structured JSON consumed by the browser voice hub
+                        String safeText = jeS(text);
+                        return "{\"text\":\"" + safeText + "\",\"lang\":\"" + languageCode +
+                               "\",\"engine\":\"gemini-tts\",\"audio\":\"" + audioB64 + "\"}";
+                    }
+                } else {
+                    System.err.println("[TTS] API error HTTP " + response.statusCode() + ": " + response.body().substring(0, Math.min(200, response.body().length())));
+                }
+            } catch (IOException | InterruptedException e) {
+                System.err.println("[TTS] Request failed: " + e.getMessage());
+                Thread.currentThread().interrupt();
+            }
+
+            // Graceful fallback
+            return buildBrowserFallback(text, languageCode);
+        }
+
+        private static String buildBrowserFallback(String text, String languageCode) {
+            String safeText = jeS(text);
+            return "{\"text\":\"" + safeText + "\",\"lang\":\"" + languageCode + "\",\"engine\":\"browser-tts\"}";
+        }
+
+        /** Extract base64 audio from Gemini TTS response inlineData */
+        private static String extractInlineData(String json) {
+            if (json == null) return null;
+            int di = json.indexOf("\"data\":");
+            if (di < 0) return null;
+            int start = json.indexOf('"', di + 7) + 1;
+            if (start <= 0) return null;
+            int end = json.indexOf('"', start);
+            if (end <= start) return null;
+            return json.substring(start, end);
+        }
+
+        private static String jeS(String s) {
+            if (s == null) return "";
+            return s.replace("\\", "\\\\").replace("\"", "\\\"")
+                    .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
         }
     }
 }

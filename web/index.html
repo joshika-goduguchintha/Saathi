@@ -49,10 +49,6 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                     <span>Program Catalogs</span>
                 </button>
-                <button class="nav-item nav-voice" data-tab="voice">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                    <span>AI Voice Hub</span>
-                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -389,135 +385,6 @@
                     </div>
                 </div>
             </section>
-
-            <!-- TAB 7: AI VOICE HUB -->
-            <section id="tab-voice" class="tab-pane">
-                <div class="voice-hub-grid">
-
-                    <!-- LEFT COLUMN: AI Chat + Voice Message -->
-                    <div class="voice-col-left">
-
-                        <!-- AI Chat Panel -->
-                        <div class="glass-card voice-chat-card">
-                            <div class="card-header">
-                                <h3>💬 AI Saathi Chat</h3>
-                                <div class="voice-chat-controls">
-                                    <select id="chat-ben-select" class="select-sm" title="Attach Beneficiary Context">
-                                        <option value="">No Beneficiary Context</option>
-                                    </select>
-                                    <button class="btn btn-secondary btn-sm" onclick="toggleChatVoice()" id="chat-voice-toggle" title="Toggle AI voice responses">
-                                        🔊 Voice On
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="chat-window" id="chat-window">
-                                <div class="chat-msg chat-msg-ai">
-                                    <div class="chat-avatar">🤖</div>
-                                    <div class="chat-bubble">
-                                        <p>Namaste! 🙏 I'm Saathi, your AI-powered livelihood assistant. You can ask me about training programmes, job opportunities, skill gaps, beneficiary registration, or anything else!</p>
-                                        <span class="chat-time" id="chat-init-time"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="chat-input-row">
-                                <input type="text" id="chat-input" placeholder="Ask Saathi anything... (or press mic)" onkeydown="if(event.key==='Enter') sendChatMessage()">
-                                <button class="btn-mic" id="chat-mic-btn" onclick="startVoiceMessage()" title="Speak to AI">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-                                </button>
-                                <button class="btn btn-primary" onclick="sendChatMessage()" id="chat-send-btn">Send</button>
-                            </div>
-                            <div class="mic-status" id="voice-msg-status"></div>
-                        </div>
-
-                        <!-- Voice Message Panel -->
-                        <div class="glass-card voice-panel">
-                            <div class="card-header">
-                                <h3>🎙 Voice Message to AI</h3>
-                                <span class="badge badge-info">Real-time STT</span>
-                            </div>
-                            <p class="voice-panel-desc">Click the button below, speak your question or message, and Saathi will respond instantly in voice.</p>
-                            <div class="voice-action-row">
-                                <button class="btn-voice-speak" id="speak-btn" onclick="startVoiceMessage()">
-                                    <span class="voice-ring"></span>
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
-                                    Speak to AI
-                                </button>
-                                <div class="voice-transcript-box">
-                                    <div class="transcript-label">Transcript</div>
-                                    <div id="voice-transcript">Your speech will appear here...</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- RIGHT COLUMN: AI Call + Voice Recording -->
-                    <div class="voice-col-right">
-
-                        <!-- Simulated AI Call Panel -->
-                        <div class="glass-card call-panel">
-                            <div class="card-header">
-                                <h3>📞 AI Saathi Call</h3>
-                                <span class="badge badge-success">Simulated Live Call</span>
-                            </div>
-                            <div class="call-interface" id="call-interface">
-                                <div class="call-avatar">
-                                    <div class="call-avatar-ring" id="call-avatar-ring">
-                                        <span class="call-avatar-icon">🤖</span>
-                                    </div>
-                                    <div class="call-name">Saathi AI</div>
-                                    <div class="call-status" id="call-status-text">Ready to connect</div>
-                                    <div class="call-timer" id="call-timer">00:00</div>
-                                </div>
-                                <div class="call-transcript-area">
-                                    <div class="call-transcript-label">Live Conversation</div>
-                                    <div class="call-log" id="call-log">
-                                        <div class="call-log-entry call-log-ai">📞 Start a call to begin your conversation with Saathi AI.</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="call-btn-row">
-                                <button class="btn-call-start" id="call-start-btn" onclick="startAICall()">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
-                                    Start Call
-                                </button>
-                                <button class="btn-call-end hidden" id="call-end-btn" onclick="endAICall()">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
-                                    End Call
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Voice Intake Registration -->
-                        <div class="glass-card recording-panel">
-                            <div class="card-header">
-                                <h3>🎙 Voice Intake Registration</h3>
-                                <span class="badge badge-success">Conversational AI</span>
-                            </div>
-                            <p class="voice-panel-desc">Use the 10-step conversational onboarding to register a beneficiary by voice. The AI will ask one question at a time and auto-fill your profile.</p>
-
-                            <div class="intake-launch-area">
-                                <button class="btn-intake-launch" onclick="openOnboardingModal()">
-                                    <span class="intake-icon">🧭</span>
-                                    <span class="intake-label">Start Voice Onboarding</span>
-                                    <span class="intake-sub">10 questions · AI guided · Multilingual</span>
-                                </button>
-                            </div>
-
-                            <div class="intake-mode-row">
-                                <button class="btn-intake-mode" onclick="openOnboardingModal('direct')">
-                                    📝 <span>Direct Form</span>
-                                </button>
-                                <button class="btn-intake-mode" onclick="openOnboardingModal('voice')">
-                                    🎤 <span>Voice Note</span>
-                                </button>
-                                <button class="btn-intake-mode" onclick="openOnboardingModal('ivr')">
-                                    📞 <span>IVR Call</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
         </main>
     </div>
 
@@ -717,7 +584,7 @@
                         <h3 class="call-agent-name" data-i18n="call_agent_name">Saathi AI Voice Officer</h3>
                         <div class="call-status-row">
                             <span class="call-timer" id="call-timer">00:00</span>
-                            <span class="call-lang-badge" id="call-lang-badge">🇮🇳 Telugu (తెలుగు)</span>
+                            <span class="call-lang-badge" id="call-lang-badge">🌐 Selecting Language...</span>
                         </div>
                     </div>
                 </div>
@@ -726,32 +593,74 @@
 
             <!-- Call State Banner (Turn-Taking Indicator) -->
             <div class="call-state-banner" id="call-state-banner">
-                <div class="state-icon" id="call-state-icon">🤖</div>
+                <div class="state-icon" id="call-state-icon">🌐</div>
                 <div class="state-text-wrap">
-                    <span class="state-title" id="call-state-title">AI Speaking...</span>
-                    <span class="state-desc" id="call-state-desc">Please listen to the question</span>
+                    <span class="state-title" id="call-state-title">Language Selection</span>
+                    <span class="state-desc" id="call-state-desc">Please choose your preferred language</span>
                 </div>
             </div>
 
             <!-- Audio Waveform Visualization -->
             <div class="call-wave-container" id="call-wave-container">
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
-                <div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div><div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div><div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div><div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div><div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div><div class="call-wave-bar"></div>
+                <div class="call-wave-bar"></div><div class="call-wave-bar"></div>
             </div>
 
-            <!-- Real-Time Call Transcript Dialogue Stream -->
-            <div class="call-transcript-stream" id="call-transcript-stream">
-                <!-- Dialogue bubbles injected here -->
+            <!-- ═══════════════════════════════════════════════════════
+                 LANGUAGE SELECTION SCREEN (Phase 1 — shown first)
+            ════════════════════════════════════════════════════════ -->
+            <div id="call-lang-select-screen" style="padding:16px 20px;">
+                <div style="text-align:center; margin-bottom:14px;">
+                    <div style="font-size:30px; margin-bottom:6px;">🌐</div>
+                    <h3 style="font-size:15px; font-weight:800; color:var(--text-main); margin-bottom:6px;">Select Your Language / भाषा चुनें</h3>
+                    <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:4px;">
+                        మీకు ఏ భాష అనుకూలం? &nbsp;|&nbsp; நீங்கள் எந்த மொழி? &nbsp;|&nbsp; ನಿಮ್ಮ ಭಾಷೆ?
+                    </p>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
+                    <button class="call-lang-btn" id="clb-te" onclick="selectCallLanguage('te-IN')"
+                        style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+                        <span style="font-size:20px;">🇮🇳</span>
+                        <span style="font-size:17px; font-weight:800;">తెలుగు</span>
+                        <small>Telugu</small>
+                    </button>
+                    <button class="call-lang-btn" id="clb-ta" onclick="selectCallLanguage('ta-IN')"
+                        style="background:linear-gradient(135deg,#0d9488,#0369a1);">
+                        <span style="font-size:20px;">🇮🇳</span>
+                        <span style="font-size:17px; font-weight:800;">தமிழ்</span>
+                        <small>Tamil</small>
+                    </button>
+                    <button class="call-lang-btn" id="clb-hi" onclick="selectCallLanguage('hi-IN')"
+                        style="background:linear-gradient(135deg,#d97706,#b45309);">
+                        <span style="font-size:20px;">🇮🇳</span>
+                        <span style="font-size:17px; font-weight:800;">हिंदी</span>
+                        <small>Hindi</small>
+                    </button>
+                    <button class="call-lang-btn" id="clb-kn" onclick="selectCallLanguage('kn-IN')"
+                        style="background:linear-gradient(135deg,#dc2626,#9f1239);">
+                        <span style="font-size:20px;">🇮🇳</span>
+                        <span style="font-size:17px; font-weight:800;">ಕನ್ನಡ</span>
+                        <small>Kannada</small>
+                    </button>
+                    <button class="call-lang-btn" id="clb-en" onclick="selectCallLanguage('en-IN')"
+                        style="background:linear-gradient(135deg,#1e40af,#1d4ed8); grid-column:1/-1;">
+                        <span style="font-size:20px;">🇬🇧</span>
+                        <span style="font-size:17px; font-weight:800;">English</span>
+                        <small>English</small>
+                    </button>
+                </div>
+                <div id="call-lang-listen-bar" style="text-align:center; padding:8px; border-radius:10px;
+                     background:rgba(124,58,237,.08); border:1px dashed #7c3aed; display:none;">
+                    <span style="font-size:12px; color:#7c3aed;">🎙️ Listening… speak the name of your language</span>
+                </div>
+            </div>
+
+            <!-- Real-Time Call Transcript Dialogue Stream (hidden during lang select) -->
+            <div class="call-transcript-stream" id="call-transcript-stream" style="display:none;">
             </div>
 
             <!-- Inline Fallback Typing Drawer (if mic fails or noisy environment) -->

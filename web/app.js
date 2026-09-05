@@ -221,34 +221,54 @@ const I18N = {
 };
 
 // =============================================================================
-// SPEECH SYNTHESIS ENGINE (ROBUST BROWSER TTS)
+// SPEECH SYNTHESIS ENGINE — Gemini TTS primary, browser TTS fallback
 // =============================================================================
 let _ttsWatchdog = null;
+let _ttsAudioCtx  = null;  // Web Audio context (reused)
 
-function speakText(text, lang = 'en-IN', onEndCallback) {
-    if (!chatVoiceEnabled || !('speechSynthesis' in window)) {
-        if (onEndCallback) onEndCallback();
-        return;
+function _getAudioCtx() {
+    if (!_ttsAudioCtx || _ttsAudioCtx.state === 'closed') {
+        _ttsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
+    return _ttsAudioCtx;
+}
 
+/** Play a base64 PCM/WAV/OGG blob via Web Audio API. Returns a Promise that resolves when done. */
+function _playBase64Audio(base64, onEndCallback) {
     try {
-        if (window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
-        }
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const ctx = _getAudioCtx();
+        ctx.decodeAudioData(bytes.buffer, (audioBuffer) => {
+            const src = ctx.createBufferSource();
+            src.buffer = audioBuffer;
+            src.connect(ctx.destination);
+            src.onended = () => { if (onEndCallback) onEndCallback(); };
+            src.start(0);
+        }, (err) => {
+            console.warn('[TTS] decodeAudioData failed:', err);
+            if (onEndCallback) onEndCallback();
+        });
+    } catch (e) {
+        console.warn('[TTS] base64 audio playback failed:', e);
+        if (onEndCallback) onEndCallback();
+    }
+}
+
+/** Browser Speech Synthesis fallback */
+function _browserSpeak(text, lang, onEndCallback) {
+    if (!('speechSynthesis' in window)) { if (onEndCallback) onEndCallback(); return; }
+    try {
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
         window.speechSynthesis.cancel();
     } catch (e) {}
-
-    if (!text || !text.trim()) {
-        if (onEndCallback) onEndCallback();
-        return;
-    }
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = lang;
     utterance.rate = 0.95;
     utterance.pitch = 1.0;
 
-    // Pick matching voice
     const voices = window.speechSynthesis.getVoices();
     if (voices && voices.length > 0) {
         const prefix = lang.split('-')[0];
@@ -256,9 +276,7 @@ function speakText(text, lang = 'en-IN', onEndCallback) {
         if (match) utterance.voice = match;
     }
 
-    // Retain global reference to prevent Chrome garbage-collection bug
     window._activeUtterance = utterance;
-
     let callbackFired = false;
     const fireCallback = () => {
         if (callbackFired) return;
@@ -267,20 +285,45 @@ function speakText(text, lang = 'en-IN', onEndCallback) {
         window._activeUtterance = null;
         if (onEndCallback) onEndCallback();
     };
-
     utterance.onend = fireCallback;
     utterance.onerror = fireCallback;
-
-    // Safety fallback timer in case browser drops onend
     const safetyDuration = Math.max(2200, text.length * 90);
     _ttsWatchdog = setTimeout(fireCallback, safetyDuration);
+    try { window.speechSynthesis.speak(utterance); } catch (err) { fireCallback(); }
+}
 
-    try {
-        window.speechSynthesis.speak(utterance);
-    } catch (err) {
-        console.warn('SpeechSynthesis error:', err);
-        fireCallback();
-    }
+/**
+ * speakText — primary TTS function.
+ * Tries Gemini TTS (/api/tts). On success plays audio via Web Audio API.
+ * Falls back to browser speechSynthesis on any error.
+ */
+function speakText(text, lang = 'en-IN', onEndCallback) {
+    if (!chatVoiceEnabled) { if (onEndCallback) onEndCallback(); return; }
+    if (!text || !text.trim()) { if (onEndCallback) onEndCallback(); return; }
+
+    // Cancel any ongoing browser TTS
+    try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e){}
+
+    fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, lang })
+    })
+    .then(r => r.json())
+    .then(data => {
+        const tts = data.tts || {};
+        if (tts.engine === 'gemini-tts' && tts.audio) {
+            console.log('[TTS] Playing Gemini audio for lang=' + lang);
+            _playBase64Audio(tts.audio, onEndCallback);
+        } else {
+            // Server used browser-tts fallback — use browser speech synthesis
+            _browserSpeak(text, lang, onEndCallback);
+        }
+    })
+    .catch(err => {
+        console.warn('[TTS] /api/tts fetch failed, using browser TTS:', err);
+        _browserSpeak(text, lang, onEndCallback);
+    });
 }
 
 // Warm up voices
@@ -458,17 +501,122 @@ const CallAgent = {
     }
 };
 
+// =============================================================================
+// VOICE CALL AGENT — Phase 1: Language Selection → Phase 2: Full Onboarding
+// All speech via Gemini TTS (/api/tts). Listening via browser SpeechRecognition.
+// =============================================================================
+
 async function startInteractiveVoiceCall(preLang) {
-    const lang = preLang || currentAppLang || 'en-IN';
     CallAgent.reset();
-    CallAgent.language = lang;
 
     const modal = document.getElementById('voice-call-modal');
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    const stream = document.getElementById('call-transcript-stream');
-    if (stream) stream.innerHTML = '';
+    // Reset timer
+    document.getElementById('call-timer').textContent = '00:00';
+    CallAgent.timerInterval = setInterval(() => {
+        CallAgent.seconds++;
+        const m = String(Math.floor(CallAgent.seconds / 60)).padStart(2, '0');
+        const s = String(CallAgent.seconds % 60).padStart(2, '0');
+        document.getElementById('call-timer').textContent = `${m}:${s}`;
+    }, 1000);
+
+    if (preLang) {
+        // Language already known — skip selection phase
+        await selectCallLanguage(preLang);
+        return;
+    }
+
+    // ── Phase 1: Language Selection ──────────────────────────────────────────
+    CallAgent.state = 'LANG_SELECT';
+    _showCallScreen('lang');
+    setCallBanner('Language Selection', 'Please choose your preferred language', '🌐', '');
+
+    // Gemini speaks the selection prompt in all 5 languages
+    const langPrompt = 'Namaste! नमस्ते! నమస్కారం! வணக்கம்! ನಮಸ್ಕಾರ! ' +
+        'Please select your language. ' +
+        'अपनी भाषा चुनें। ' +
+        'మీకు ఏ భాష అనుకూలం? ' +
+        'நீங்கள் எந்த மொழியில் பேச விரும்புகிறீர்கள்? ' +
+        'ನಿಮ್ಮ ಭಾಷೆ ಯಾವುದು?';
+
+    // Speak using Gemini TTS (en-IN covers all scripts in single utterance)
+    speakText(langPrompt, 'hi-IN', () => {
+        // After speaking, start listening for spoken language name
+        if (CallAgent.state === 'LANG_SELECT') {
+            _listenForLanguage();
+        }
+    });
+}
+
+/** Listen for a spoken language name and auto-detect it */
+function _listenForLanguage() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const listenBar = document.getElementById('call-lang-listen-bar');
+    if (listenBar) listenBar.style.display = 'block';
+
+    if (!SR || CallAgent.state !== 'LANG_SELECT') return;
+
+    const recognition = new SR();
+    recognition.lang = 'en-IN';   // broad recognition to catch all language names
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    CallAgent.recognition = recognition;
+
+    recognition.onresult = (e) => {
+        const spoken = e.results[0][0].transcript.toLowerCase().trim();
+        console.log('[CallAgent] Language spoken:', spoken);
+        const detected = _detectLangFromText(spoken);
+        if (detected) {
+            selectCallLanguage(detected);
+        }
+        // If not detected, user can still click a button
+    };
+
+    recognition.onerror = () => { /* silent — buttons still work */ };
+    recognition.onend = () => {
+        if (listenBar) listenBar.style.display = 'none';
+    };
+
+    try { recognition.start(); } catch(e) {}
+}
+
+/** Detect BCP-47 language code from a spoken keyword */
+function _detectLangFromText(text) {
+    if (/telugu|telgu|te\b|తెలుగు/.test(text))   return 'te-IN';
+    if (/tamil|tamizh|ta\b|தமிழ்/.test(text))     return 'ta-IN';
+    if (/hindi|hind|hi\b|हिंदी|हिन्दी/.test(text)) return 'hi-IN';
+    if (/kannada|kannad|kn\b|ಕನ್ನಡ/.test(text))   return 'kn-IN';
+    if (/english|eng\b/.test(text))                return 'en-IN';
+    return null;
+}
+
+/** Switch the call modal from lang-select to Q&A screens */
+function _showCallScreen(screen) {
+    const langScreen = document.getElementById('call-lang-select-screen');
+    const transcript = document.getElementById('call-transcript-stream');
+    if (screen === 'lang') {
+        if (langScreen) langScreen.style.display = 'block';
+        if (transcript) transcript.style.display = 'none';
+    } else {
+        if (langScreen) langScreen.style.display = 'none';
+        if (transcript) { transcript.style.display = 'flex'; transcript.innerHTML = ''; }
+    }
+}
+
+/** Called when user clicks or speaks a language — Phase 2 starts */
+async function selectCallLanguage(lang) {
+    if (CallAgent.state === 'COMPLETED') return;
+
+    // Stop any language-detection recognition
+    if (CallAgent.recognition) {
+        try { CallAgent.recognition.abort(); } catch(e) {}
+        CallAgent.recognition = null;
+    }
+
+    CallAgent.language = lang;
+    CallAgent.state = 'STARTING';
 
     const badgeMap = {
         'te-IN': '🇮🇳 Telugu (తెలుగు)',
@@ -479,16 +627,32 @@ async function startInteractiveVoiceCall(preLang) {
     };
     document.getElementById('call-lang-badge').textContent = badgeMap[lang] || lang;
 
-    document.getElementById('call-timer').textContent = '00:00';
-    CallAgent.timerInterval = setInterval(() => {
-        CallAgent.seconds++;
-        const m = String(Math.floor(CallAgent.seconds / 60)).padStart(2, '0');
-        const s = String(CallAgent.seconds % 60).padStart(2, '0');
-        document.getElementById('call-timer').textContent = `${m}:${s}`;
-    }, 1000);
+    // Highlight the selected language button briefly
+    document.querySelectorAll('.call-lang-btn').forEach(b => b.style.opacity = '0.5');
+    const selectedId = { 'te-IN':'clb-te','ta-IN':'clb-ta','hi-IN':'clb-hi','kn-IN':'clb-kn','en-IN':'clb-en' }[lang];
+    const selBtn = document.getElementById(selectedId);
+    if (selBtn) { selBtn.style.opacity = '1'; selBtn.style.transform = 'scale(1.05)'; }
 
-    appendCallTranscript('ai', '📞 Connected with Saathi AI Voice Officer...');
+    // Transition to Q&A screen after a short delay
+    await new Promise(r => setTimeout(r, 400));
+    _showCallScreen('qa');
+    setCallBanner('Connecting...', 'Starting onboarding session', '🔄', '');
 
+    // Confirmation message in the chosen language
+    const confirmMsg = {
+        'te-IN': 'తెలుగు ఎంపిక చేసారు. Saathi AI కాల్ ప్రారంభమవుతోంది!',
+        'ta-IN': 'தமிழ் தேர்ந்தெடுக்கப்பட்டது. Saathi AI அழைப்பு தொடங்குகிறது!',
+        'hi-IN': 'हिंदी चुनी गई। Saathi AI कॉल शुरू हो रही है!',
+        'kn-IN': 'ಕನ್ನಡ ಆಯ್ಕೆ ಮಾಡಲಾಗಿದೆ. Saathi AI ಕರೆ ಪ್ರಾರಂಭವಾಗುತ್ತಿದೆ!',
+        'en-IN': 'English selected. Starting Saathi AI call!'
+    }[lang];
+
+    appendCallTranscript('ai', '📞 ' + confirmMsg);
+
+    // Speak the confirmation with Gemini TTS
+    speakText(confirmMsg, lang);
+
+    // Start the server-side onboarding session
     try {
         const res = await fetch('/api/onboarding/start', {
             method: 'POST',
@@ -497,22 +661,22 @@ async function startInteractiveVoiceCall(preLang) {
         });
         const data = await res.json();
         if (data.error) {
-            alert('Error: ' + data.error);
-            confirmEndCall();
+            appendCallTranscript('ai', '❌ ' + data.error);
             return;
         }
-
         CallAgent.sessionId = data.sessionId;
         CallAgent.step = 1;
-        executeCallAiTurn(data.prompt);
+
+        // Small pause then start Q&A
+        setTimeout(() => executeCallAiTurn(data.prompt, data.tts), 1200);
 
     } catch(err) {
-        alert('Could not connect to Saathi server.');
-        confirmEndCall();
+        appendCallTranscript('ai', '⚠️ Could not connect to Saathi server. Please try again.');
+        setCallBanner('Connection Error', 'Check your server', '❌', 'state-retry');
     }
 }
 
-function executeCallAiTurn(promptText) {
+function executeCallAiTurn(promptText, ttsData) {
     CallAgent.state = 'AI_SPEAKING';
     CallAgent.lastPrompt = promptText;
 
@@ -522,11 +686,19 @@ function executeCallAiTurn(promptText) {
 
     appendCallTranscript('ai', promptText);
 
-    speakText(promptText, CallAgent.language, () => {
+    const onSpoken = () => {
         if (CallAgent.state === 'AI_SPEAKING') {
             startCallUserListeningTurn();
         }
-    });
+    };
+
+    // If pre-synthesized TTS audio is supplied from backend, play it directly
+    if (ttsData && ttsData.engine === 'gemini-tts' && ttsData.audio) {
+        console.log('[CallAgent] Playing pre-synthesized Gemini TTS audio for lang=' + CallAgent.language);
+        _playBase64Audio(ttsData.audio, onSpoken);
+    } else {
+        speakText(promptText, CallAgent.language, onSpoken);
+    }
 }
 
 function startCallUserListeningTurn() {
@@ -556,7 +728,7 @@ function startCallUserListeningTurn() {
         }
     };
 
-    recognition.onerror = (e) => {
+    recognition.onerror = () => {
         if (CallAgent.state === 'LISTENING') {
             setCallBanner('Waiting for voice...', 'Click Replay 🔊 or Type ⌨️ if needed', '👂', 'state-speaking');
         }
@@ -566,17 +738,13 @@ function startCallUserListeningTurn() {
         if (CallAgent.state === 'LISTENING') {
             setTimeout(() => {
                 if (CallAgent.state === 'LISTENING') {
-                    try { recognition.start(); } catch(e){}
+                    try { recognition.start(); } catch(e) {}
                 }
             }, 600);
         }
     };
 
-    try {
-        recognition.start();
-    } catch(e) {
-        console.warn('Speech recognition error:', e);
-    }
+    try { recognition.start(); } catch(e) { console.warn('STT error:', e); }
 }
 
 async function submitCallAnswer(answerText) {
@@ -602,17 +770,25 @@ async function submitCallAnswer(answerText) {
         if (!data.valid) {
             CallAgent.state = 'RETRY';
             setCallBanner('Invalid Response', 'Please clarify your response', '⚠️', 'state-retry');
-            executeCallAiTurn(data.nextPrompt);
+            executeCallAiTurn(data.nextPrompt, data.tts);
             return;
         }
 
         if (data.done) {
             CallAgent.state = 'COMPLETED';
-            appendCallTranscript('ai', '🎉 Registration Complete! Finalizing your profile...');
+            const doneMsg = {
+                'te-IN': '🎉 అన్ని 10 ప్రశ్నలు పూర్తయ్యాయి! మీ ప్రొఫైల్ సేవ్ అవుతోంది...',
+                'ta-IN': '🎉 10 கேள்விகளும் முடிந்தன! உங்கள் சுயவிவரம் சேமிக்கப்படுகிறது...',
+                'hi-IN': '🎉 सभी 10 सवाल पूरे हुए! आपकी प्रोफ़ाइल सहेजी जा रही है...',
+                'kn-IN': '🎉 10 ಪ್ರಶ್ನೆಗಳು ಮುಗಿದಿವೆ! ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಉಳಿಸಲಾಗುತ್ತಿದೆ...',
+                'en-IN': '🎉 All 10 questions complete! Saving your profile...'
+            }[CallAgent.language] || '🎉 Registration Complete! Finalizing your profile...';
+            appendCallTranscript('ai', doneMsg);
+            speakText(doneMsg, CallAgent.language);
             await finalizeCallSession();
         } else {
             CallAgent.step = data.step + 1;
-            executeCallAiTurn(data.nextPrompt);
+            executeCallAiTurn(data.nextPrompt, data.tts);
         }
 
     } catch(err) {
@@ -629,20 +805,33 @@ async function finalizeCallSession() {
         });
         const data = await res.json();
         if (data.success) {
-            const congratsMsg = 'Your beneficiary profile has been created successfully! Assigned ID: ' + data.beneficiaryId;
+            const congratsMsg = {
+                'te-IN': `🎊 మీ ప్రొఫైల్ విజయవంతంగా సేవ్ అయింది! మీ ID: ${data.beneficiaryId}. ధన్యవాదాలు!`,
+                'ta-IN': `🎊 உங்கள் சுயவிவரம் வெற்றிகரமாக சேமிக்கப்பட்டது! உங்கள் ID: ${data.beneficiaryId}. நன்றி!`,
+                'hi-IN': `🎊 आपकी प्रोफ़ाइल सफलतापूर्वक सहेजी गई! आपकी ID: ${data.beneficiaryId}. धन्यवाद!`,
+                'kn-IN': `🎊 ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಯಶಸ್ವಿಯಾಗಿ ಉಳಿಸಲಾಗಿದೆ! ನಿಮ್ಮ ID: ${data.beneficiaryId}. ಧನ್ಯವಾದಗಳು!`,
+                'en-IN': `🎊 Your profile has been saved successfully! Assigned ID: ${data.beneficiaryId}. Thank you!`
+            }[CallAgent.language] || `🎊 Profile saved! ID: ${data.beneficiaryId}`;
+
             appendCallTranscript('ai', congratsMsg);
             speakText(congratsMsg, CallAgent.language);
+            setCallBanner('✅ Registration Complete!', 'Profile saved to database', '🎊', 'state-speaking');
+
+            // Reload dashboard data then show the profile
+            loadDashboard();
+            loadBeneficiaries();
 
             setTimeout(() => {
                 confirmEndCall();
-                loadDashboard();
                 openProfileModal(data.beneficiaryId);
-            }, 3200);
+            }, 3500);
         }
     } catch(err) {
-        alert('Error finalizing profile.');
+        appendCallTranscript('ai', '⚠️ Error saving profile. Please try again.');
     }
 }
+
+
 
 function setCallBanner(title, desc, icon, stateClass) {
     const banner = document.getElementById('call-state-banner');
